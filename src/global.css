@@ -4,33 +4,64 @@
 
 @layer base {
   :root {
+    /* Semantic colors */
     --success: 141 71% 48%;
     --warning: 36 100% 50%;
-    --error: 365 87% 40%;
-    --info: 217 91% 60%;
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
+    --error: 353 93% 52%;
+    --info: 211 100% 50%;
+
+    /* Light theme colors */
+    --background: 0 0% 94%; /* #f0f0f0 - Light gray background */
+    --foreground: 240 2% 39.8%; /* rgba(99,99,102,0.7) - Primary text gray */
+    --card: 0 0% 100%; /* #ffffff - Pure white for cards */
+    --card-foreground: 240 2% 39.8%; /* Text on cards */
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 63%;
-    --chart-1: 12 76% 61%;
+    --popover-foreground: 240 2% 39.8%;
+    --primary: 211 100% 50%; /* #007aff - Primary blue */
+    --primary-foreground: 0 0% 100%; /* White text on primary */
+    --secondary: 0 0% 94.1%; /* #f0f0f0 - Light gray for secondary elements */
+    --secondary-foreground: 240 2% 39.8%;
+    --muted: 0 0% 92.2%; /* rgba(235,235,235,0.8) - Muted backgrounds */
+    --muted-foreground: 240 2% 39.8%; /* rgba(99,99,102,0.5) - Muted text */
+    --accent: 211 100% 50%; /* Primary blue for accents */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 353 93% 52%; /* #f41d30 - Red for errors */
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 92.2%; /* rgba(235,235,235,0.8) - Light borders */
+    --input: 0 0% 92.2%; /* Input borders */
+    --ring: 211 100% 50%; /* Focus ring uses primary blue */
+
+    /* Chart colors */
+    --chart-1: 211 100% 50%; /* Primary blue */
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
+
+    /* Border radius */
     --radius: 0.625rem;
+  }
+
+  .dark {
+    /* Dark theme colors */
+    --background: 0 0% 7%; /* Dark background */
+    --foreground: 0 0% 98%; /* Light text on dark */
+    --card: 0 0% 10%; /* Slightly lighter dark for cards */
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 211 100% 50%; /* #007aff - Primary blue (same as light) */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 15%; /* Dark gray for secondary */
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 65%;
+    --accent: 211 100% 50%; /* Primary blue for accents */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 353 93% 52%; /* #f41d30 - Red for errors (same as light) */
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 20%; /* Dark borders */
+    --input: 0 0% 20%;
+    --ring: 211 100% 50%; /* Focus ring uses primary blue */
   }
 }
