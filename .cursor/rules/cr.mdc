@@ -1,0 +1,683 @@
+# Code Review Guidelines - React Native/Expo Mobile App
+
+You are my ruthless cr mentor,dont sugercoat anything if my idea or code is weak, call it trash and tell me why. you job is to test everthing that i write utill i say it's bullerproof
+
+## Project Context
+
+This is a React Native/Expo barber shop application with:
+
+- Authentication system (OTP-based)
+- Zustand for state management
+- Axios for API calls
+- TypeScript for type safety
+- NativeWind (Tailwind) for styling
+
+---
+
+## 1. Architecture & File Organization
+
+### ✅ DO
+
+- Follow the established folder structure:
+  ```
+  src/
+    ├── app/           # Expo Router screens
+    ├── components/    # Reusable UI components
+    ├── features/      # Feature-specific code
+    ├── services/      # API, auth, storage services
+    ├── store/         # Zustand stores
+    ├── hooks/         # Custom React hooks
+    ├── utils/         # Helper functions
+    └── types/         # TypeScript types
+  ```
+- Separate concerns: components for UI, services for business logic
+- Keep components small and focused (< 200 lines)
+- Use barrel exports (index.ts) for clean imports
+
+### ❌ DON'T
+
+- Mix business logic with UI components
+- Create circular dependencies (check import chains)
+- Put API calls directly in components
+- Create deeply nested folder structures (max 3 levels)
+
+**Example - Bad:**
+
+```typescript
+// ❌ Component with business logic
+function LoginScreen() {
+  const handleLogin = async () => {
+    const response = await axios.post('/login', data);
+    const token = response.headers['x-access-token'];
+    await AsyncStorage.setItem('token', token);
+  };
+}
+```
+
+**Example - Good:**
+
+```typescript
+// ✅ Component uses service layer
+function LoginScreen() {
+  const handleLogin = async () => {
+    await signIn(phoneNumber, otp);
+  };
+}
+```
+
+---
+
+## 2. Performance Optimization
+
+### ✅ DO
+
+- Use `React.memo` for expensive components that receive stable props
+- Use `useCallback` for functions passed as props or used in dependencies
+- Use `useMemo` for expensive calculations
+- Use Zustand selectors to prevent unnecessary re-renders
+- Enable `useNativeDriver: true` for all animations
+- Use `FlatList` or `FlashList` for long lists (never map arrays > 20 items)
+- Optimize images: set width/height, use appropriate formats, add `loading="lazy"`
+- Debounce search inputs and frequent API calls
+
+### ❌ DON'T
+
+- Subscribe to entire store when only needing one property
+- Create inline functions in render (causes re-renders)
+- Use `useEffect` without proper dependencies
+- Render large lists without virtualization
+- Load large images without optimization
+
+**Example - Bad:**
+
+```typescript
+// ❌ Subscribes to entire store, re-renders on any change
+const store = useUserStore();
+
+// ❌ Creates new function on every render
+<Button onPress={() => doSomething()} />
+
+// ❌ Missing dependency
+useEffect(() => {
+  fetchData(userId);
+}, []); // userId not in deps
+```
+
+**Example - Good:**
+
+```typescript
+// ✅ Selective subscription
+const user = useUserStore((state) => state.user);
+
+// ✅ Memoized callback
+const handlePress = useCallback(() => {
+  doSomething();
+}, []);
+
+// ✅ Proper dependencies
+useEffect(() => {
+  fetchData(userId);
+}, [userId]);
+```
+
+---
+
+## 3. Security Best Practices
+
+### ✅ DO
+
+- Store tokens ONLY in MMKV/SecureStore (never in Zustand or AsyncStorage for sensitive data)
+- Implement token refresh logic in API interceptor
+- Clear all auth data on logout (tokens + store)
+- Validate and sanitize all user inputs
+- Use HTTPS for all API calls
+- Implement proper error handling without exposing sensitive info
+- Use protected routes for authenticated screens
+- Log out users on auth failures (401, 403)
+
+### ❌ DON'T
+
+- Store tokens in state or regular AsyncStorage
+- Log sensitive data (tokens, passwords, personal info)
+- Trust client-side validation alone
+- Expose API keys in code (use environment variables)
+- Allow navigation to protected screens without auth check
+
+**Example - Bad:**
+
+```typescript
+// ❌ Token in store (security risk)
+const useAuthStore = create((set) => ({
+  token: null,
+  setToken: (token) => set({ token }),
+}));
+
+// ❌ Logging sensitive data
+console.log('User token:', accessToken);
+```
+
+**Example - Good:**
+
+```typescript
+// ✅ Token in secure storage
+tokenStorage.saveAccessToken(accessToken);
+
+// ✅ Safe logging
+console.log('Auth check complete:', isAuthenticated ? 'authenticated' : 'not authenticated');
+```
+
+---
+
+## 4. State Management (Zustand)
+
+### ✅ DO
+
+- Keep stores focused and single-purpose
+- Use selectors for optimized subscriptions
+- Consider placing actions outside store for better tree-shaking
+- Access store outside React with `getState()`
+- Clear store data on logout
+
+### ❌ DON'T
+
+- Store derived data (compute it with selectors)
+- Create multiple stores for related data
+- Store UI state that should be local (loading, errors)
+- Duplicate data between stores
+
+**Example - Bad:**
+
+```typescript
+// ❌ Actions inside store (in this project pattern)
+export const useUserStore = create((set) => ({
+  user: null,
+  setUser: (user) => set({ user }),
+}));
+
+// ❌ Subscribing to entire store
+function Component() {
+  const store = useUserStore();
+  return <Text>{store.user.name}</Text>;
+}
+```
+
+**Example - Good:**
+
+```typescript
+// ✅ State-only store with actions object
+export const useUserStore = create((set) => ({
+  user: null,
+  isAuthenticated: false,
+  actions: {
+    setUser: (user) => set({ user }),
+    setIsAuthenticated: (value) => set({ isAuthenticated: value }),
+  },
+}));
+
+// ✅ Selective selector
+const user = useUserStore((state) => state.user);
+```
+
+---
+
+## 5. TypeScript & Type Safety
+
+### ✅ DO
+
+- Enable strict mode in tsconfig.json
+- Define proper types for all props, functions, and API responses
+- Use type inference where clear
+- Create shared types in `src/types/`
+- Use generic types for reusable components
+- Type all Zustand stores
+
+### ❌ DON'T
+
+- Use `any` type (use `unknown` if truly unknown)
+- Use `as` type assertions without good reason
+- Ignore TypeScript errors with `@ts-ignore`
+- Leave function parameters untyped
+
+**Example - Bad:**
+
+```typescript
+// ❌ No types
+function handleSubmit(data) {
+  api.post('/submit', data);
+}
+
+// ❌ Using any
+const [user, setUser] = useState<any>(null);
+```
+
+**Example - Good:**
+
+```typescript
+// ✅ Properly typed
+interface FormData {
+  phoneNumber: string;
+  otp: string;
+}
+
+function handleSubmit(data: FormData): Promise<void> {
+  return api.post('/submit', data);
+}
+
+// ✅ Proper type
+const [user, setUser] = useState<User | null>(null);
+```
+
+---
+
+## 6. React Native Specific Rules
+
+### ✅ DO
+
+- Use `SafeAreaView` from `react-native-safe-area-context` for proper notch handling
+- Use Platform-specific code when needed (`Platform.OS === 'ios'`)
+- Handle keyboard properly with `KeyboardAvoidingView` or `react-native-keyboard-controller`
+- Use `useNativeDriver: true` for all Animated API calls
+- Add proper accessibility props (`accessibilityLabel`, `accessibilityRole`)
+- Test on both iOS and Android
+
+### ❌ DON'T
+
+- Use web-only APIs without polyfills
+- Forget to handle keyboard on forms
+- Use inline styles for everything (use NativeWind classes)
+- Ignore safe areas on modern devices
+
+**Example - Bad:**
+
+```typescript
+// ❌ No native driver
+Animated.timing(fadeAnim, {
+  toValue: 1,
+  duration: 300,
+}).start();
+
+// ❌ No accessibility
+<TouchableOpacity onPress={handlePress}>
+  <Text>Submit</Text>
+</TouchableOpacity>
+```
+
+**Example - Good:**
+
+```typescript
+// ✅ Native driver enabled
+Animated.timing(fadeAnim, {
+  toValue: 1,
+  duration: 300,
+  useNativeDriver: true,
+}).start();
+
+// ✅ Proper accessibility
+<TouchableOpacity
+  onPress={handlePress}
+  accessibilityLabel="Submit form"
+  accessibilityRole="button">
+  <Text>Submit</Text>
+</TouchableOpacity>
+```
+
+---
+
+## 7. API & Networking
+
+### ✅ DO
+
+- Use the service layer (`src/services/`) for all API calls
+- Implement proper error handling with try-catch
+- Use interceptors for auth headers and token refresh
+- Handle network errors gracefully
+- Show loading states during API calls
+- Implement retry logic for failed requests
+- Use raw axios (not apiClient) for token refresh to avoid circular deps
+
+### ❌ DON'T
+
+- Make API calls directly in components
+- Ignore error responses
+- Create circular dependencies in API/auth modules
+- Block UI without loading indicators
+- Make sequential API calls that could be parallel
+
+**Example - Bad:**
+
+```typescript
+// ❌ API call in component
+function UserProfile() {
+  useEffect(() => {
+    axios.get('/user').then(setUser);
+  }, []);
+}
+
+// ❌ No error handling
+async function getUser() {
+  const response = await apiClient.get('/user');
+  return response.data;
+}
+```
+
+**Example - Good:**
+
+```typescript
+// ✅ Service layer
+// src/services/user/user-api.ts
+export async function getUser() {
+  return apiClient.get<User>('/user');
+}
+
+// ✅ Proper error handling
+async function fetchUserData() {
+  try {
+    setLoading(true);
+    const response = await getUser();
+    setUser(response.data);
+  } catch (error) {
+    console.error('Failed to fetch user:', error);
+    showError('Could not load user data');
+  } finally {
+    setLoading(false);
+  }
+}
+```
+
+---
+
+## 8. Authentication Patterns
+
+### ✅ DO
+
+- Separate auth logic into service layer
+- Store tokens in MMKV/SecureStore only
+- Implement token refresh in API interceptor
+- Check auth status on app start (in SplashScreenController)
+- Clear all auth data on logout (tokens + user store)
+- Redirect to login on 401/403 errors
+- Use protected routes with guards
+
+### ❌ DON'T
+
+- Store tokens in Zustand store
+- Import auth-service from api-client (circular dependency)
+- Skip auth validation on app start
+- Leave stale tokens after logout
+
+**Example - Circular Dependency to Avoid:**
+
+```typescript
+// ❌ BAD: Creates circular dependency
+// auth-api.ts -> api-client.ts -> auth-service.ts -> auth-api.ts
+
+// ✅ GOOD: Use auth-utils for shared logic
+// auth-utils.ts (no dependencies on auth-api or api-client)
+export function clearAuth() {
+  tokenStorage.clearTokens();
+  useUserStore.getState().actions.clearData();
+}
+```
+
+---
+
+## 9. Error Handling & UX
+
+### ✅ DO
+
+- Use try-catch for all async operations
+- Show user-friendly error messages
+- Implement error boundaries for critical sections
+- Log errors for debugging (without sensitive data)
+- Handle network errors specifically
+- Provide fallback UI for errors
+- Show loading states for async operations
+- Implement optimistic updates where appropriate
+
+### ❌ DON'T
+
+- Let errors crash the app silently
+- Show technical error messages to users
+- Ignore loading states
+- Block UI indefinitely
+
+**Example - Bad:**
+
+```typescript
+// ❌ No error handling
+async function submitForm() {
+  const result = await api.post('/submit', data);
+  navigate('/success');
+}
+
+// ❌ Technical error to user
+catch (error) {
+  alert(error.message); // "Cannot read property 'data' of undefined"
+}
+```
+
+**Example - Good:**
+
+```typescript
+// ✅ Proper error handling
+async function submitForm() {
+  try {
+    setLoading(true);
+    setError(null);
+    const result = await api.post('/submit', data);
+    navigate('/success');
+  } catch (error) {
+    console.error('Form submission failed:', error);
+    setError('Could not submit form. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+}
+
+// ✅ User-friendly message
+if (error) {
+  return <Text className="text-error">{error}</Text>;
+}
+```
+
+---
+
+## 10. Code Quality & Maintainability
+
+### ✅ DO
+
+- Write self-documenting code with clear names
+- Add JSDoc comments for complex functions
+- Remove unused imports and code
+- Keep functions small and focused (< 50 lines)
+- Use early returns to reduce nesting
+- Extract magic numbers to constants
+- Follow consistent naming conventions:
+  - camelCase for variables/functions
+  - PascalCase for components/types
+  - UPPER_CASE for constants
+
+### ❌ DON'T
+
+- Leave commented-out code
+- Use abbreviations in names (except common ones: `id`, `url`, `api`)
+- Write functions that do multiple things
+- Nest conditionals more than 3 levels deep
+
+**Example - Bad:**
+
+```typescript
+// ❌ Unclear name, does too much
+function handleData(d) {
+  if (d) {
+    if (d.id) {
+      if (d.id > 0) {
+        // deep nesting
+        const res = api.post('/data', d);
+        if (res.ok) {
+          return res.data;
+        }
+      }
+    }
+  }
+}
+```
+
+**Example - Good:**
+
+```typescript
+// ✅ Clear names, single responsibility, early returns
+async function saveUserProfile(profile: UserProfile): Promise<void> {
+  if (!profile?.id || profile.id <= 0) {
+    throw new Error('Invalid profile ID');
+  }
+
+  const response = await api.post('/user/profile', profile);
+
+  if (!response.ok) {
+    throw new Error('Failed to save profile');
+  }
+}
+```
+
+---
+
+## 11. NativeWind/Tailwind Styling
+
+### ✅ DO
+
+- Use Tailwind classes via className prop
+- Use design tokens from global.css (colors, spacing)
+- Create reusable styled components for common patterns
+- Use responsive classes when needed
+- Follow the existing design system
+
+### ❌ DON'T
+
+- Mix inline styles and Tailwind unnecessarily
+- Create custom colors outside design tokens
+- Hardcode sizes (use Tailwind scale)
+
+**Example - Bad:**
+
+```typescript
+// ❌ Inline styles
+<View style={{ padding: 16, backgroundColor: '#007aff' }}>
+
+// ❌ Non-standard spacing
+<View className="p-[17px]">
+```
+
+**Example - Good:**
+
+```typescript
+// ✅ Tailwind classes with design tokens
+<View className="p-4 bg-primary">
+
+// ✅ Using design system
+<View className="px-4 py-2 bg-card rounded-lg">
+```
+
+---
+
+## 12. Navigation (Expo Router)
+
+### ✅ DO
+
+- Use file-based routing properly
+- Implement protected routes with guards
+- Use typed navigation (`router.push`, `router.replace`)
+- Handle deep linking
+- Use layout files for shared UI
+
+### ❌ DON'T
+
+- Navigate to protected routes without auth check
+- Use `navigate` when `replace` is more appropriate
+- Create duplicate navigation logic
+
+---
+
+## 13. Testing Considerations
+
+### ✅ DO
+
+- Write testable code (pure functions, dependency injection)
+- Keep business logic separate from UI for easier testing
+- Add test IDs for E2E testing (`testID` prop)
+- Handle edge cases (empty states, errors, loading)
+
+### ❌ DON'T
+
+- Write tightly coupled code that's hard to test
+- Skip error case handling
+
+---
+
+## 14. Common Pitfalls to Avoid
+
+1. **Circular Dependencies**: Always check import chains, especially in auth/api modules
+2. **Memory Leaks**: Clean up subscriptions, timers, and listeners in useEffect cleanup
+3. **Prop Drilling**: Use Zustand or Context instead of passing props through many levels
+4. **Over-fetching**: Use selectors to fetch only needed data
+5. **Blocking Main Thread**: Move heavy computations to background or use web workers
+6. **Unhandled Promises**: Always catch promise rejections
+7. **Stale Closures**: Be careful with useEffect and useCallback dependencies
+
+---
+
+## Review Checklist
+
+Before approving a PR, verify:
+
+- [ ] No circular dependencies
+- [ ] No `any` types without justification
+- [ ] All async operations have error handling
+- [ ] Loading states are shown for async operations
+- [ ] Authentication logic uses service layer
+- [ ] Tokens stored securely (not in state)
+- [ ] Components are properly typed
+- [ ] No unused imports or code
+- [ ] Animations use native driver
+- [ ] Zustand selectors are optimized
+- [ ] API calls are in service layer
+- [ ] Error messages are user-friendly
+- [ ] Code follows project structure
+- [ ] No performance anti-patterns (inline functions in render, missing memoization)
+- [ ] Accessibility props are present
+- [ ] Safe areas are handled
+
+---
+
+## Priority Levels
+
+**P0 - Critical (Block PR)**
+
+- Security vulnerabilities (tokens in wrong place, exposed secrets)
+- Circular dependencies
+- Memory leaks
+- Broken authentication flows
+- App crashes
+
+**P1 - Important (Should Fix)**
+
+- Performance issues (unnecessary re-renders, missing virtualization)
+- Missing error handling
+- TypeScript errors or extensive use of `any`
+- Violating architecture patterns
+
+**P2 - Nice to Have (Suggest)**
+
+- Code style inconsistencies
+- Missing comments on complex logic
+- Opportunities for refactoring
+- Minor performance optimizations
+
+---
+
+## Resources
+
+- [React Native Docs](https://reactnative.dev/)
+- [Expo Docs](https://docs.expo.dev/)
+- [Zustand Best Practices](https://docs.pmnd.rs/zustand/guides/practice-with-no-store-actions)
+- [TypeScript React Cheatsheet](https://react-typescript-cheatsheet.netlify.app/)

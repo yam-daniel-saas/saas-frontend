@@ -42,15 +42,13 @@ function Input({
   const inputId = props.accessibilityLabel || label || 'input';
 
   return (
-    <View className={cn('w-full gap-3', containerClassName)}>
+    <View className={cn('w-full gap-1 px-2', containerClassName)}>
       {/* Label */}
       {label && (
-        <View className="flex-row items-center justify-center px-2">
-          <ThemedText className={cn('flex-1 text-sm font-medium text-foreground', labelClassName)}>
-            {label}
-            {required && <Text className="text-destructive"> *</Text>}
-          </ThemedText>
-        </View>
+        <ThemedText className={cn('text-md px-2 font-medium text-foreground', labelClassName)}>
+          {label}
+          {required && <Text className="text-destructive"> *</Text>}
+        </ThemedText>
       )}
 
       {/* Input Wrapper - Relative positioning like the example */}
@@ -106,9 +104,8 @@ function Input({
           </View>
         )}
       </View>
-
       {/* Error Message */}
-      {error && <Text className="px-2 text-xs text-[#f41d30]">{error}</Text>}
+      {error && <ThemedText className="px-2 text-destructive">{error}</ThemedText>}
     </View>
   );
 }
