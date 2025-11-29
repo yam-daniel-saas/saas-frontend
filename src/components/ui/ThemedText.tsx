@@ -1,3 +1,4 @@
+import { isRTL } from '@/i18n';
 import { cn } from '@/utils/cn';
 import { cva, type VariantProps } from 'class-variance-authority';
 import * as React from 'react';
@@ -61,19 +62,15 @@ const ARIA_LEVEL: Partial<Record<TextVariant, string>> = {
   h4: '4',
 };
 
-const TextClassContext = React.createContext<string | undefined>(undefined);
-
 function Text({
   className,
-
   variant = 'default',
   ...props
 }: React.ComponentProps<typeof RNText> & TextVariantProps & React.RefAttributes<RNText>) {
-  const textClass = React.useContext(TextClassContext);
-
   return (
     <RNText
-      className={cn(textVariants({ variant }), textClass, className)}
+      className={cn(textVariants({ variant }), className)}
+      style={{ writingDirection: isRTL ? 'rtl' : 'ltr' }}
       role={variant ? ROLE[variant] : undefined}
       aria-level={variant ? ARIA_LEVEL[variant] : undefined}
       {...props}
@@ -81,4 +78,4 @@ function Text({
   );
 }
 
-export { Text, TextClassContext };
+export { Text };
